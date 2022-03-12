@@ -1,0 +1,230 @@
+extends layout
+
+block content
+  include ./includes/common.pug
+  script.
+    function generateLengthMenu(setting_txPerPage, lengthMenuOpts) {
+      var addedLength = false;
+      for (i = 0; i < lengthMenuOpts.length; i++) {
+        if (!addedLength) {
+          if (lengthMenuOpts[i] > setting_txPerPage) {
+            lengthMenuOpts.splice(i, 0, setting_txPerPage);
+            addedLength = true;
+          } else if (lengthMenuOpts[i] == setting_txPerPage)
+            addedLength = true;
+        }
+      }
+      if (!addedLength && setting_txPerPage != lengthMenuOpts[lengthMenuOpts.length - 1])
+        lengthMenuOpts.push(setting_txPerPage);
+      return lengthMenuOpts;
+    }
+    $(document).ready(function() {
+      var setting_txPerPage = parseInt("#{settings.network_page.connections_table.items_per_page}");
+      $('#connections-table').dataTable({
+        autoWidth: true,
+        searching: false,
+        ordering: false,
+        responsive: true,
+        lengthChange: true,
+        processing: true,
+        iDisplayLength: setting_txPerPage,
+        lengthMenu: generateLengthMenu(setting_txPerPage, !{JSON.stringify(settings.network_page.connections_table.page_length_options)}),
+        scrollX: true,
+        language: {
+          paginate: {
+            previous: '<',
+            next: '>'
+          }
+        },
+        ajax: {
+          url: '/ext/getnetworkpeers/internal',
+          dataSrc: function (json) {
+            return json.data;
+          }
+        },
+        rowCallback: function (row, data, index) {
+          var flagBlock = '';
+          if (data['country_code'].length > 1) {
+            flagBlock = '<div class="margin-left-5 flag-icon flag-icon-'+data['country_code'].toLowerCase()+'"></div>';
+          }
+          $("td:eq(0)", row).html(data['address']).addClass('breakWord');
+          $("td:eq(1)", row).html(data['protocol']);
+          $("td:eq(2)", row).html(data['version']);
+          $("td:eq(3)", row).html(data['country']+flagBlock);
+        },
+        fnDrawCallback: function(settings) {
+          fixDataTableColumns();
+          fixFooterHeightAndPosition();
+        },
+        columns: [
+          { data: 'address', width: '25%' },
+          { data: 'protocol', width: '25%' },
+          { data: 'version', width:'25%' },
+          { data: 'country', width: '25%'}
+        ]
+      });
+      setting_txPerPage = parseInt("#{settings.network_page.addnodes_table.items_per_page}");
+      $('#addnodes-table').dataTable({
+        autoWidth: true,
+        searching: false,
+        ordering: false,
+        responsive: true,
+        lengthChange: true,
+        processing: true,
+        iDisplayLength: setting_txPerPage,
+        lengthMenu: generateLengthMenu(setting_txPerPage, !{JSON.stringify(settings.network_page.addnodes_table.page_length_options)}),
+        scrollX: true,
+        language: {
+          paginate: {
+            previous: '<',
+            next: '>'
+          }
+        },
+        ajax: {
+          url: '/ext/getnetworkpeers/internal',
+          dataSrc: function (json) {
+            var rows = [];
+
+            for (var i=0; i<json.data.length; i++)
+              rows.push({'nodes': 'addnode=' + json.data[i]['address'] + (json.data[i]['port'] == null ? '' : ':' + json.data[i]['port'])});
+
+            return rows;
+          }
+        },
+        fnDrawCallback: function(settings) {
+          fixDataTableColumns();
+          fixFooterHeightAndPosition();
+        },
+        columns: [
+          {data: 'nodes', width: '100%'}
+        ],
+        columnDefs: [
+          {targets: '_all', className: 'text-left'}
+        ]
+      });
+      setting_txPerPage = parseInt("#{settings.network_page.onetry_table.items_per_page}");
+      $('#onetry-table').dataTable({
+        autoWidth: true,
+        searching: false,
+        ordering: false,
+        responsive: true,
+        lengthChange: true,
+        processing: true,
+        iDisplayLength: setting_txPerPage,
+        lengthMenu: generateLengthMenu(setting_txPerPage, !{JSON.stringify(settings.network_page.onetry_table.page_length_options)}),
+        scrollX: true,
+        language: {
+          paginate: {
+            previous: '<',
+            next: '>'
+          }
+        },
+        ajax: {
+          url: '/ext/getnetworkpeers/internal',
+          dataSrc: function (json) {
+            var rows = [];
+
+            for (var i=0; i<json.data.length; i++)
+              rows.push({'nodes': 'addnode ' + json.data[i]['address'] + (json.data[i]['port'] == null ? '' : ':' + json.data[i]['port']) + ' onetry'});
+
+            return rows;
+          }
+        },
+        fnDrawCallback: function(settings) {
+          fixDataTableColumns();
+          fixFooterHeightAndPosition();
+        },
+        columns: [
+          {data: 'nodes', width: '100%'}
+        ],
+        columnDefs: [
+          {targets: '_all', className: 'text-left'}
+        ]
+      });
+      $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+        fixDataTableColumns();
+        fixFooterHeightAndPosition();
+      });
+
+      if ('#{settings.network_page.page_header.show_last_updated}' == 'true') {
+        var lastUpdatedDate = #{(last_updated == null || last_updated == '0' ? 0 : last_updated)};
+
+        if (lastUpdatedDate != 0) {
+          $('span#lastUpdatedDate').html(' ' + format_unixtime(lastUpdatedDate));
+
+          if (#{settings.shared_pages.date_time.enable_alt_timezone_tooltips} == true) {
+            $('span#lastUpdatedDate').attr('data-toggle', 'tooltip').attr('data-placement', 'auto').attr('title', format_unixtime(lastUpdatedDate, true));
+            enableTooltips();
+          }
+        } else
+          $('span#lastUpdatedDate').html(' N/A');
+      }
+      if (#{settings.shared_pages.page_header.page_title_image.enable_animation} == true && #{settings.network_page.page_header.show_img} == true)
+        startRotateElement('img#header-img');
+    });
+  - var theadClasses = [];
+  if settings.shared_pages.table_header_bgcolor != null && settings.shared_pages.table_header_bgcolor != ''
+    - theadClasses.push('thead-' + settings.shared_pages.table_header_bgcolor);
+  .col-md-12.cardSpacer
+    .container
+      if settings.network_page.page_header.show_img == true || settings.network_page.page_header.show_title == true || settings.network_page.page_header.show_last_updated == true || settings.network_page.page_header.show_description == true
+        #page-header-container(style='align-items:' + (settings.network_page.page_header.show_img == true && settings.network_page.page_header.show_title == true && settings.network_page.page_header.show_last_updated == true && settings.network_page.page_header.show_description == true ? 'flex-start' : 'center'))
+          if settings.network_page.page_header.show_img == true
+            #header-img-container
+              img#header-img(src=(settings.shared_pages.page_header.page_title_image == null || settings.shared_pages.page_header.page_title_image.image_path == null || settings.shared_pages.page_header.page_title_image.image_path == '' ? '/img/page-title-img.png' : settings.shared_pages.page_header.page_title_image.image_path))
+          #page-title-container
+            if settings.network_page.page_header.show_title == true
+              h3#page-title #{settings.locale.net_title.replace('{1}', settings.coin.name)}
+            if settings.network_page.page_header.show_last_updated == true
+              if settings.network_page.page_header.show_title != true && settings.network_page.page_header.show_description != true
+                #page-title-container
+                  .sub-page-header
+                    span.font-weight-bold=settings.locale.last_updated + ':'
+                    span.text-muted#lastUpdatedDate
+              else
+                .sub-page-header(style='margin-bottom:' + (settings.network_page.page_header.show_description == true ? '5' : '0') + 'px')
+                  span.font-weight-bold=settings.locale.last_updated + ':'
+                  span.text-muted#lastUpdatedDate
+            if settings.network_page.page_header.show_description == true
+              if settings.network_page.page_header.show_title != true && settings.network_page.page_header.show_last_updated != true
+                #page-title-container
+                  .sub-page-header.text-muted=settings.locale.net_description.replace('{1}', settings.coin.name)
+              else
+                .sub-page-header.text-muted=settings.locale.net_description.replace('{1}', settings.coin.name)
+        .cardSpacer.clearfix
+      ul.nav.nav-tabs(role='tablist')
+        li.nav-item(role='presentation')
+          a.nav-link.active(href='#connections', aria-controls='connections', role='tab', data-toggle='tab') #{settings.locale.net_connections}
+        li.nav-item(role='presentation')
+          a.nav-link(href='#addnodes', aria-controls='addnodes', role='tab', data-toggle='tab') #{settings.locale.net_addnodes}
+    .tab-content
+      #connections.container.tab-pane.active(style='margin-top:0;border-top:0;')
+        .card.card-default.border-0
+          table#connections-table.table.table-bordered.table-striped.table-paging.mobile-border-right
+            thead(class=theadClasses)
+              tr
+                th.text-center #{settings.locale.net_address}
+                th.text-center #{settings.locale.net_protocol}
+                th.text-center #{settings.locale.net_subversion}
+                th.text-center #{settings.locale.net_country}
+            tbody.text-center
+      #addnodes.container.tab-pane(style='margin-top:0;border-top:0;')
+        .card.card-default.border-0
+          .card-body.border-top-0
+            :markdown-it
+              If you have trouble syncing your wallet, add these lines to your coin daemon .conf file and restart the wallet.
+              
+              *Typically you can access the config file through QT-wallet menu, Tools > Open Wallet Configuration File*
+          table#addnodes-table.table.table-bordered.table-striped.table-paging.mobile-border-right
+            thead(class=theadClasses)
+              tr
+                th AddNode Config Lines
+            tbody.text-center
+          .card-body.border-top-0
+            :markdown-it
+              Alternatively you can try one of these lines in the coin wallet debug window, or add them with *coindaemon*-cli
+          table#onetry-table.table.table-bordered.table-striped.table-paging.mobile-border-right
+            thead(class=theadClasses)
+              tr
+                th OneTry Node Lines
+            tbody.text-center

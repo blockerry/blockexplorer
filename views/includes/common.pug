@@ -1,0 +1,11 @@
+script(type='text/javascript', src='https://cdn.jsdelivr.net/npm/luxon@2.1.1/build/global/luxon.min.js')
+script.
+  function format_unixtime(unixtime, alt) {
+    if (alt == null)
+      alt = false;
+    // check if this date should be displayed in utc or local timezone
+    if (('#{settings.shared_pages.date_time.timezone}'.toLowerCase() == 'local' && !alt) || ('#{settings.shared_pages.date_time.timezone}'.toLowerCase() == 'utc' && alt))
+      return luxon.DateTime.fromSeconds(unixtime).toLocal().toFormat('#{settings.shared_pages.date_time.display_format}');
+    else
+      return luxon.DateTime.fromSeconds(unixtime).toUTC().toFormat('#{settings.shared_pages.date_time.display_format}');
+  }

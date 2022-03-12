@@ -1,0 +1,201 @@
+extends layout
+
+block content
+  include ./includes/common.pug
+  script.
+    $(document).ready(function() {
+      $('.summary-table').dataTable({
+        info: false,
+        paging: false,
+        searching: false,
+        ordering: false,
+        responsive: true,
+        scrollX: true,
+        fnDrawCallback: function(settings) {
+          fixDataTableColumns();
+        }
+      });
+
+      if ('#{settings.blockchain_specific.heavycoin.reward_page.page_header.show_last_updated}' == 'true') {
+        var lastUpdatedDate = #{(last_updated == null || last_updated == '0' ? 0 : last_updated)};
+
+        if (lastUpdatedDate != 0) {
+          $('span#lastUpdatedDate').html(' ' + format_unixtime(lastUpdatedDate));
+
+          if (#{settings.shared_pages.date_time.enable_alt_timezone_tooltips} == true) {
+            $('span#lastUpdatedDate').attr('data-toggle', 'tooltip').attr('data-placement', 'auto').attr('title', format_unixtime(lastUpdatedDate, true));
+            enableTooltips();
+          }
+        } else
+          $('span#lastUpdatedDate').html(' N/A');
+      }
+      if (#{settings.shared_pages.page_header.page_title_image.enable_animation} == true && #{settings.blockchain_specific.heavycoin.reward_page.page_header.show_img} == true)
+        startRotateElement('img#header-img');
+    });
+  .row(style='margin-left:0;margin-right:0;')
+    .col-xs-12.col-md-12
+      if settings.blockchain_specific.heavycoin.reward_page.page_header.show_img == true || settings.blockchain_specific.heavycoin.reward_page.page_header.show_title == true || settings.blockchain_specific.heavycoin.reward_page.page_header.show_last_updated == true || settings.blockchain_specific.heavycoin.reward_page.page_header.show_description == true
+        #page-header-container(style='align-items:' + (settings.blockchain_specific.heavycoin.reward_page.page_header.show_img == true && settings.blockchain_specific.heavycoin.reward_page.page_header.show_title == true && settings.blockchain_specific.heavycoin.reward_page.page_header.show_last_updated == true && settings.blockchain_specific.heavycoin.reward_page.page_header.show_description == true ? 'flex-start' : 'center'))
+          if settings.blockchain_specific.heavycoin.reward_page.page_header.show_img == true
+            #header-img-container
+              img#header-img(src=(settings.shared_pages.page_header.page_title_image == null || settings.shared_pages.page_header.page_title_image.image_path == null || settings.shared_pages.page_header.page_title_image.image_path == '' ? '/img/page-title-img.png' : settings.shared_pages.page_header.page_title_image.image_path))
+          #page-title-container
+            if settings.blockchain_specific.heavycoin.reward_page.page_header.show_title == true
+              h3#page-title #{settings.locale.heavy_title.replace('{1}', settings.coin.name)}
+            if settings.blockchain_specific.heavycoin.reward_page.page_header.show_last_updated == true
+              if settings.blockchain_specific.heavycoin.reward_page.page_header.show_title != true && settings.blockchain_specific.heavycoin.reward_page.page_header.show_description != true
+                #page-title-container
+                  .sub-page-header
+                    span.font-weight-bold=settings.locale.last_updated + ':'
+                    span.text-muted#lastUpdatedDate
+              else
+                .sub-page-header(style='margin-bottom:' + (settings.blockchain_specific.heavycoin.reward_page.page_header.show_description == true ? '5' : '0') + 'px')
+                  span.font-weight-bold=settings.locale.last_updated + ':'
+                  span.text-muted#lastUpdatedDate
+            if settings.blockchain_specific.heavycoin.reward_page.page_header.show_description == true
+              if settings.blockchain_specific.heavycoin.reward_page.page_header.show_title != true && settings.blockchain_specific.heavycoin.reward_page.page_header.show_last_updated != true
+                #page-title-container
+                  .sub-page-header.text-muted=settings.locale.heavy_description.replace('{1}', settings.coin.name)
+              else
+                .sub-page-header.text-muted=settings.locale.heavy_description.replace('{1}', settings.coin.name)
+        .cardSpacer.clearfix
+      .card.card-default.border-0.card-address-summary
+        .card-header(style='position:relative;')
+          strong #{settings.locale.heavy_reward_voting_info}
+            span.small  (#{settings.coin.symbol})
+        table.table.table-bordered.table-striped.summary-table(style='border-top:0;border-bottom:0;margin-top:0 !important;')
+          - var theadClasses = [];
+          if settings.shared_pages.table_header_bgcolor != null && settings.shared_pages.table_header_bgcolor != ''
+            - theadClasses.push('thead-' + settings.shared_pages.table_header_bgcolor);
+          thead(class=theadClasses)
+            tr
+              th.text-center #{settings.locale.ex_supply}
+                span.small  (#{settings.coin.symbol})
+              th.text-center #{settings.locale.heavy_cap}
+                span.small  (#{settings.coin.symbol})
+              th.text-center #{settings.locale.heavy_phase}
+              th.text-center #{settings.locale.heavy_maxvote}
+              th.text-center #{settings.locale.heavy_reward}
+              th.text-center #{settings.locale.heavy_estnext}
+          tbody
+            - var supplyValue = Number(heavy.supply).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+            - var splitSupply = supplyValue.split('.');
+            - var capValue = Number(heavy.cap).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+            - var splitCap = capValue.split('.');
+            - var rewardValue = Number(heavy.reward).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+            - var splitReward = rewardValue.split('.');
+            - var nextValue = Number(heavy.estnext).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+            - var splitNext = nextValue.split('.');
+            tr
+              td.text-center #{splitSupply[0]}.
+                span.decimal #{splitSupply[1]}
+              td.text-center #{splitCap[0]}.
+                span.decimal #{splitCap[1]}
+              td.text-center
+                =heavy.phase
+              td.text-center
+                =heavy.maxvote
+              td.text-center #{splitReward[0]}.
+                span.decimal #{splitReward[1]}
+              td.text-center #{splitNext[0]}.
+                span.decimal #{splitNext[1]}
+  .row(style='margin-left:0;margin-right:0;')
+    .col-md-3
+      .card.card-default.border-0
+        .card-body
+          div.text-center
+            canvas.d-inline(id="rewardChange", width="150", height="150" style="max-width:150px;max-height:150px;")
+              script.
+                var ctx = document.getElementById("rewardChange").getContext("2d");
+                var data = {
+                  labels: [
+                    "Est. Next",
+                    "Current Reward"
+                  ],
+                  datasets: [
+                    {
+                      data: [(((#{stats.count}/3600)%1)*100).toFixed(2), ((1-((#{stats.count}/3600)%1))*100).toFixed(2)],
+                      backgroundColor: ["rgba(92,184,92,1.0)", "#222"]
+                    }
+                  ]
+                };
+                var options = {
+                  plugins: {
+                    legend: {
+                      display: false
+                    }
+                  }
+                };
+                new Chart(ctx, { type: 'doughnut', data: data, options: options });
+            h5 #{settings.locale.heavy_changein}
+            h5
+              =heavy.nextin
+          form
+            table.table
+              tbody
+                tr
+                  th #{settings.locale.heavy_key}
+                  td
+                tr
+                  th #{settings.locale.heavy_vote}
+                  td
+                    div(style="width:20px;height:20px;background-color:#428bca")
+                tr
+                  th #{settings.locale.heavy_current}
+                  td
+                    div(style="width:20px;height:20px;background-color:#222")
+                tr
+                  th #{settings.locale.heavy_estnext}
+                  td
+                    div(style="width:20px;height:20px;background-color:rgba(92,184,92,1.0)")
+    .col-md-9
+      .card.card-default.border-0
+        .card-body
+          div.text-center
+            .div
+              strong #{settings.locale.heavy_lastxvotes}
+            .div
+              canvas.d-inline(id="lastVotes", width="800", height="300", style="margin-left:-30px;margin-top:30px;max-width:800px;")
+                script.
+                  var ctx = document.getElementById("lastVotes").getContext("2d");
+                  var options = {
+                    plugins: {
+                      legend: {
+                        display: false
+                      }
+                    },
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        min: 0,
+                        suggestedMax: 8,
+                        ticks: {
+                          stepSize: 1,
+                          maxTicksLimit: 8
+                        }
+                      },
+                    },
+                    line: {
+                      tension: 0
+                    }
+                  };
+                  var data = {
+                    labels: [#{(votes.length > 0 ? votes[0].count : 0)},#{(votes.length > 1 ? votes[1].count : 0)},#{(votes.length > 2 ? votes[2].count : 0)},#{(votes.length > 3 ? votes[3].count : 0)},#{(votes.length > 4 ? votes[4].count : 0)},#{(votes.length > 5 ? votes[5].count : 0)},#{(votes.length > 6 ? votes[6].count : 0)},#{(votes.length > 7 ? votes[7].count : 0)},#{(votes.length > 8 ? votes[8].count : 0)},#{(votes.length > 9 ? votes[9].count : 0)},#{(votes.length > 10 ? votes[10].count : 0)},#{(votes.length > 11 ? votes[11].count : 0)},#{(votes.length > 12 ? votes[12].count : 0)},#{(votes.length > 13 ? votes[13].count : 0)},#{(votes.length > 14 ? votes[14].count : 0)},#{(votes.length > 15 ? votes[15].count : 0)},#{(votes.length > 16 ? votes[16].count : 0)},#{(votes.length > 17 ? votes[17].count : 0)},#{(votes.length > 18 ? votes[18].count : 0)},#{(votes.length > 19 ? votes[19].count : 0)}],
+                    datasets: [
+                      {
+                        backgroundColor: "rgba(66,139,202,0.5)",
+                        borderColor: "rgba(66,139,202,0.8)",
+                        pointBackgroundColor: '#428bca',
+                        pointBorderColor: "#fff",
+                        data: [#{(votes.length > 0 ? votes[0].vote : 0)},#{(votes.length > 1 ? votes[1].vote : 0)},#{(votes.length > 2 ? votes[2].vote : 0)},#{(votes.length > 3 ? votes[3].vote : 0)},#{(votes.length > 4 ? votes[4].vote : 0)},#{(votes.length > 5 ? votes[5].vote : 0)},#{(votes.length > 6 ? votes[6].vote : 0)},#{(votes.length > 7 ? votes[7].vote : 0)},#{(votes.length > 8 ? votes[8].vote : 0)},#{(votes.length > 9 ? votes[9].vote : 0)},#{(votes.length > 10 ? votes[10].vote : 0)},#{(votes.length > 11 ? votes[11].vote : 0)},#{(votes.length > 12 ? votes[12].vote : 0)},#{(votes.length > 13 ? votes[13].vote : 0)},#{(votes.length > 14 ? votes[14].vote : 0)},#{(votes.length > 15 ? votes[15].vote : 0)},#{(votes.length > 16 ? votes[16].vote : 0)},#{(votes.length > 17 ? votes[17].vote : 0)},#{(votes.length > 18 ? votes[18].vote : 0)},#{(votes.length > 19 ? votes[19].vote : 0)}]
+                      },
+                      {
+                        backgroundColor: "rgba(151,187,205,0.0)",
+                        borderColor: '#222',
+                        pointBackgroundColor: "rgba(0,0,0,0)",
+                        pointBorderColor: "rgba(0,0,0,0.0)",
+                        data: [#{(votes.length > 0 ? votes[0].reward : 0)},#{(votes.length > 1 ? votes[1].reward : 0)},#{(votes.length > 2 ? votes[2].reward : 0)},#{(votes.length > 3 ? votes[3].reward : 0)},#{(votes.length > 4 ? votes[4].reward : 0)},#{(votes.length > 5 ? votes[5].reward : 0)},#{(votes.length > 6 ? votes[6].reward : 0)},#{(votes.length > 7 ? votes[7].reward : 0)},#{(votes.length > 8 ? votes[8].reward : 0)},#{(votes.length > 9 ? votes[9].reward : 0)},#{(votes.length > 10 ? votes[10].reward : 0)},#{(votes.length > 11 ? votes[11].reward : 0)},#{(votes.length > 12 ? votes[12].reward : 0)},#{(votes.length > 13 ? votes[13].reward : 0)},#{(votes.length > 14 ? votes[14].reward : 0)},#{(votes.length > 15 ? votes[15].reward : 0)},#{(votes.length > 16 ? votes[16].reward : 0)},#{(votes.length > 17 ? votes[17].reward : 0)},#{(votes.length > 18 ? votes[18].reward : 0)},#{(votes.length > 19 ? votes[19].reward : 0)}]
+                      }
+                    ]
+                  };
+                  var myNewChart = new Chart(ctx, { type: 'line', data: data, options: options });

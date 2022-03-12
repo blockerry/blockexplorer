@@ -1,0 +1,204 @@
+extends layout
+
+block content
+  include ./includes/common.pug
+  script.
+    var hashAddress = "#{address.a_id}";
+    var setting_maxTxCount = parseInt("#{settings.api_page.public_apis.ext.getaddresstxs.max_items_per_query}");
+    var setting_txPerPage = parseInt("#{settings.address_page.history_table.items_per_page}");
+    var lengthMenuOptsAdd = !{JSON.stringify(settings.address_page.history_table.page_length_options)};
+    var lengthMenuOpts = [];
+    var addedLength = false;
+    for (i = 0; i < lengthMenuOptsAdd.length; i++) {
+      if (setting_maxTxCount >= lengthMenuOptsAdd[i]) {
+        if (!addedLength) {
+          if (lengthMenuOptsAdd[i] > setting_txPerPage) {
+            lengthMenuOpts.push(setting_txPerPage);
+            addedLength = true;
+          }
+        }
+
+        lengthMenuOpts.push(lengthMenuOptsAdd[i]);
+
+        if (!addedLength) {
+          if (lengthMenuOptsAdd[i] > setting_txPerPage)
+            lengthMenuOpts.push(setting_txPerPage);
+          if (lengthMenuOptsAdd[i] == setting_txPerPage || lengthMenuOptsAdd[i] > setting_txPerPage)
+            addedLength = true;
+        }
+      }
+    }
+    if (!addedLength && setting_txPerPage <= setting_maxTxCount && setting_txPerPage != lengthMenuOpts[lengthMenuOpts.length - 1])
+      lengthMenuOpts.push(setting_txPerPage);
+    if (!addedLength && setting_txPerPage > setting_maxTxCount && setting_maxTxCount != lengthMenuOpts[lengthMenuOpts.length - 1])
+      lengthMenuOpts.push(setting_maxTxCount);
+    if (setting_maxTxCount < setting_txPerPage) {
+      var displayLengthMax = setting_maxTxCount;
+    } else {
+      var displayLengthMax = setting_txPerPage;
+    }
+    $(document).ready(function () {
+      var rtable = $('#address-txs').dataTable({
+        autoWidth: true,
+        searching: false,
+        ordering: false,
+        responsive: true,
+        lengthChange: true,
+        processing: true,
+        serverSide: true,
+        iDisplayLength: displayLengthMax,
+        lengthMenu: lengthMenuOpts,
+        scrollX: true,
+        ajax: {
+          url: '/ext/getaddresstxs/' + hashAddress,
+          beforeSend: function(jqXHR, settings) {
+            settings.url = settings.url.substring(0, settings.url.indexOf('?')) + '/' + getParameterByName('start', settings.url) + '/' + getParameterByName('length', settings.url) + '/internal';
+            return true;
+          }
+        },
+        language: {
+          paginate: {
+            previous: '<',
+            next: '>'
+          }
+        },
+        rowCallback: function (row, data, index) {
+          var timestamp = data[0]; //variables for better readability
+          var txhash = data[1]; //variables for better readability
+          var out = data[2]; //variables for better readability
+          var vin = data[3]; //variables for better readability
+          var balance = data[4].toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true}); //variables for better readability
+          var balanceParts = balance.split('.');
+          $("td:eq(0)", row).html('<a href="/tx/' + txhash + '"><span class="fa fa-eye" data-toggle="tooltip" data-placement="top" title="#{settings.locale.view_tx}"></span></a>').addClass('text-center d-table-cell d-md-none');
+          $("td:eq(1)", row).html('<a href="/tx/' + txhash + '">' + txhash + '</a>').addClass('breakWord d-none d-md-table-cell');
+          var amount = 0;
+          var updown = '';
+          var rowclass = 'bg-info';
+
+          if (out > 0 && vin > 0) {
+            amount = Number(out - vin);
+            if (amount < 0) {
+              amount = Number(amount * -1).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+              updown = '-';
+            } else if (amount > 0) {
+              amount = amount.toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+              updown = '+';
+            } else {
+              amount = amount.toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+            }
+          } else if (out > 0) {
+            amount = Number(out).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+            updown = '+';
+            rowclass = 'bg-success';
+          } else {
+            amount = Number(vin).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+            updown = '-';
+            rowclass = 'bg-danger';
+          }
+          var amountParts = amount.split('.');
+          $("td:eq(2)", row).html(updown + amountParts[0] + '.<span class="decimal">' + amountParts[1] + '</span>').addClass(rowclass + ' text-center');
+          $("td:eq(3)", row).html(balanceParts[0] + '.<span class="decimal">' + balanceParts[1] + '</span>').addClass('text-center');
+          $("td:eq(4)", row).html('<span' + (#{settings.shared_pages.date_time.enable_alt_timezone_tooltips} == true ? ' data-toggle="tooltip" data-placement="auto" title="' + format_unixtime(timestamp, true) + '"' : '') + '>' + format_unixtime(timestamp) + '</span>').addClass('text-center');
+        },
+        fnDrawCallback: function(settings) {
+          fixDataTableColumns();
+          fixFooterHeightAndPosition();
+          enableTooltips();
+        }
+      });
+      $('.summary-table').dataTable({
+        info: false,
+        paging: false,
+        searching: false,
+        ordering: false,
+        responsive: true,
+        scrollX: true,
+        fnDrawCallback: function(settings) {
+          fixDataTableColumns();
+        }
+      });
+      if (#{settings.shared_pages.page_header.page_title_image.enable_animation} == true && #{settings.address_page.page_header.show_img} == true)
+        startRotateElement('img#header-img');
+    });
+  - var balance = Number((address.received - address.sent) / 100000000).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+  - var balanceParts = balance.split('.');
+  - var sent = Number(address.sent /100000000).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+  - var sentParts = sent.split('.');
+  - var received = Number(address.received / 100000000).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+  - var receivedParts = received.split('.');
+  - var theadClasses = [];
+  if settings.shared_pages.table_header_bgcolor != null && settings.shared_pages.table_header_bgcolor != ''
+    - theadClasses.push('thead-' + settings.shared_pages.table_header_bgcolor);
+  .col-xs-12.col-md-12
+    if settings.address_page.page_header.show_img == true || settings.address_page.page_header.show_title == true || settings.address_page.page_header.show_description == true
+      #page-header-container(style='align-items:' + (settings.address_page.page_header.show_img == true && settings.address_page.page_header.show_title == true && settings.address_page.page_header.show_description == true ? 'flex-start' : 'center'))
+        if settings.address_page.page_header.show_img == true
+          #header-img-container
+            img#header-img(src=(settings.shared_pages.page_header.page_title_image == null || settings.shared_pages.page_header.page_title_image.image_path == null || settings.shared_pages.page_header.page_title_image.image_path == '' ? '/img/page-title-img.png' : settings.shared_pages.page_header.page_title_image.image_path))
+        #page-title-container
+          if settings.address_page.page_header.show_title == true
+            h3#page-title #{settings.locale.a_title.replace('{1}', settings.coin.name)}
+          if settings.address_page.page_header.show_description == true
+            if settings.address_page.page_header.show_title != true
+              #page-title-container
+                .sub-page-header.text-muted=settings.locale.a_description.replace('{1}', settings.coin.name).replace('{2}', (address.a_id == 'hidden_address' ? settings.locale.hidden_address : (address.a_id == 'unknown_address' ? settings.locale.unknown_address : address.a_id)))
+            else
+              .sub-page-header.text-muted=settings.locale.a_description.replace('{1}', settings.coin.name).replace('{2}', (address.a_id == 'hidden_address' ? settings.locale.hidden_address : (address.a_id == 'unknown_address' ? settings.locale.unknown_address : address.a_id)))
+      .cardSpacer.clearfix
+    .card.card-default.border-0.card-address-summary.cardSpacer
+      .card-header(style='position:relative;')
+        if settings.claim_address_page.enabled == false || address.name == null || address.name == ''
+          if address.a_id == 'hidden_address'
+            strong #{settings.locale.hidden_address}
+          else if address.a_id == 'unknown_address'
+            strong #{settings.locale.unknown_address}
+          else
+            strong #{address.a_id}
+        else
+          strong #{address.name}
+        | &#8203;
+        include ./includes/rl_labels.pug
+        if (!settings.labels[address.a_id] || !settings.labels[address.a_id].enabled) && settings.claim_address_page.enabled == true
+          a.badge.badge-pill.float-right.d-none.d-sm-block(href='/claim/' + address.a_id, style='font-size:smaller;padding-bottom:0;')
+            if address.name == null || address.name == ''
+              =" Is this yours? Claim it now for free!"
+            else
+              =" Update claimed address"
+      table.table.table-bordered.table-striped.summary-table.mobile-border-right(style='border-top:0;margin-top:0 !important;')
+        thead(class=theadClasses)
+          tr
+            th.text-center #{settings.locale.rl_balance}
+              span.small  (#{settings.coin.symbol})
+            if settings.address_page.show_sent_received == true
+              th.text-center #{settings.locale.total_sent}
+                span.small  (#{settings.coin.symbol})
+            if settings.address_page.show_sent_received == true
+              th.text-center #{settings.locale.total_received}
+                span.small  (#{settings.coin.symbol})
+            th.text-center #{settings.locale.a_qr}
+        tbody
+          tr
+            td.text-center.addr-summary #{balanceParts[0]}.
+              span.decimal #{balanceParts[1]}
+            if settings.address_page.show_sent_received == true
+              td.text-center.addr-summary #{sentParts[0]}.
+                span.decimal #{sentParts[1]}
+            if settings.address_page.show_sent_received == true
+              td.text-center.addr-summary #{receivedParts[0]}.
+                span.decimal #{receivedParts[1]}
+            td.text-center.addr-summary
+              img.qrcode(src='/qr/' + address.a_id)
+    .card.card-default.border-0.cardSpacer
+      .card-header
+        strong #{settings.locale.ex_latest_transactions}
+      table#address-txs.table.table-bordered.table-striped.table-paging.mobile-border-right
+        thead(class=theadClasses)
+          tr
+            th.d-table-cell.d-md-none
+            th.d-none.d-md-table-cell #{settings.locale.tx_hash}
+            th.text-center #{settings.locale.mkt_amount}
+              span.small  (#{settings.coin.symbol})
+            th.text-center #{settings.locale.rl_balance}
+              span.small  (#{settings.coin.symbol})
+            th.text-center #{settings.locale.timestamp}
+        tbody

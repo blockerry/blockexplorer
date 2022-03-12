@@ -1,0 +1,210 @@
+extends layout
+
+block content
+  include ./includes/common.pug
+  - var theadClasses = [];
+  if settings.shared_pages.table_header_bgcolor != null && settings.shared_pages.table_header_bgcolor != ''
+    - theadClasses.push('thead-' + settings.shared_pages.table_header_bgcolor);
+  script.
+    $(document).ready(function() {
+      $('span#timestampCol').html(format_unixtime(#{tx.timestamp}));
+
+      if (#{settings.shared_pages.date_time.enable_alt_timezone_tooltips} == true) {
+        $('span#timestampCol').attr('data-toggle', 'tooltip').attr('data-placement', 'auto').attr('title', format_unixtime(#{tx.timestamp}, true));
+        enableTooltips();
+      }
+      if (#{settings.shared_pages.page_header.page_title_image.enable_animation} == true && #{settings.transaction_page.page_header.show_img} == true)
+        startRotateElement('img#header-img');
+    });
+  .col-xs-12.col-md-12
+    if settings.transaction_page.page_header.show_img == true || settings.transaction_page.page_header.show_title == true || settings.transaction_page.page_header.show_description == true
+      #page-header-container(style='align-items:' + (settings.transaction_page.page_header.show_img == true && settings.transaction_page.page_header.show_title == true && settings.transaction_page.page_header.show_description == true ? 'flex-start' : 'center'))
+        if settings.transaction_page.page_header.show_img == true
+          #header-img-container
+            img#header-img(src=(settings.shared_pages.page_header.page_title_image == null || settings.shared_pages.page_header.page_title_image.image_path == null || settings.shared_pages.page_header.page_title_image.image_path == '' ? '/img/page-title-img.png' : settings.shared_pages.page_header.page_title_image.image_path))
+        #page-title-container
+          if settings.transaction_page.page_header.show_title == true
+            h3#page-title #{settings.locale.tx_title.replace('{1}', settings.coin.name)}
+          if settings.transaction_page.page_header.show_description == true
+            if settings.transaction_page.page_header.show_title != true
+              #page-title-container
+                .sub-page-header.text-muted=settings.locale.tx_description.replace('{1}', settings.coin.name).replace('{2}', tx.blockindex)
+            else
+              .sub-page-header.text-muted=settings.locale.tx_description.replace('{1}', settings.coin.name).replace('{2}', tx.blockindex)
+      .cardSpacer.clearfix
+    .card.card-default.border-0.cardSpacer
+      .card-header
+        strong=settings.coin.symbol + ' TXid: ' + tx.txid
+        if settings.api_page.public_apis.rpc.getrawtransaction.enabled == true
+          a.d-none.d-md-inline(href=`/api/getrawtransaction?txid=${tx.txid}&decrypt=1`)
+            span.fa.fa-info-circle.iquidus.float-right(data-toggle='tooltip', data-placement='top', title=settings.locale.view_raw_tx_data)
+      table.table.table-bordered.table-striped.summary-table.mobile-border-right
+        thead(class=theadClasses)
+          tr
+            th.text-center.d-table-cell.d-md-none
+            th.d-none.d-md-table-cell #{settings.locale.tx_block_hash}
+            if settings.transaction_page.show_op_return == true
+              th='OP_RETURN'
+            th.text-center #{settings.locale.confirmations}
+            th.text-center #{settings.locale.timestamp}
+        tbody
+          - var confirms = (blockcount - tx.blockindex);
+          if confirms >= confirmations
+            tr.bg-success.text-dark
+              td.text-center.d-table-cell.d-md-none
+                a(href='/block/' + tx.blockhash)
+                  span.fa.fa-eye(data-toggle='tooltip', data-placement='top', title=settings.locale.view_block)
+              td.d-none.d-md-table-cell
+                a.breakWord(href='/block/' + tx.blockhash) #{tx.blockhash}
+              if settings.transaction_page.show_op_return == true
+                td.breakWord #{tx.op_return}
+              td.text-center #{confirms}
+              td.text-center
+                span#timestampCol
+          else
+            if confirms < (confirmations / 2)
+              tr.bg-danger
+                td.text-center.d-table-cell.d-md-none
+                  a(href='/block/' + tx.blockhash)
+                    span.fa.fa-eye(data-toggle='tooltip', data-placement='top', title=settings.locale.view_block)
+                td.d-none.d-md-table-cell
+                  a.breakWord(href='/block/' + tx.blockhash) #{tx.blockhash}
+                if settings.transaction_page.show_op_return == true
+                  td.breakWord #{tx.op_return}
+                td.text-center #{confirms}
+                td.text-center
+                  span#timestampCol
+            else
+              tr.table-warning
+                td.text-center.d-table-cell.d-md-none
+                  a(href='/block/' + tx.blockhash)
+                    span.fa.fa-eye(data-toggle='tooltip', data-placement='top', title=settings.locale.view_block)              
+                td.d-none.d-md-table-cell
+                  a.breakWord(href='/block/' + tx.blockhash) #{tx.blockhash}
+                if settings.transaction_page.show_op_return == true
+                  td.breakWord #{tx.op_return}
+                td.text-center #{confirms}
+                td.text-center
+                  span#timestampCol
+    if tx.vout.length < 1
+      .alert.alert-info.text-center(role='alert', style='margin-bottom:0;')
+        strong #{settings.locale.tx_nonstandard}
+    else
+      .row
+        .col-md-6.cardSpacer
+          .card.card-default.border-0
+            .card-header
+              strong #{settings.locale.tx_contributors}
+              span.fa.fa-arrow-right.float-right.d-none.d-md-block
+            table.table.table-bordered.table-striped.summary-table.mobile-border-right
+              thead(class=theadClasses)
+                tr
+                  th #{settings.locale.tx_address}
+                  if (tx.vin.length > 0)
+                    if tx.vin[0].addresses != 'coinbase'
+                      th.text-center #{settings.locale.mkt_amount}
+                        span.small  (#{settings.coin.symbol})
+              tbody
+                if tx.vin.length > 0
+                  each address in tx.vin
+                    if address.addresses == 'coinbase'
+                      tr.table-info.text-center
+                        td #{settings.locale.new_coins}
+                    else
+                      - var ramount = Number(address.amount / 100000000).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+                      - var ramountParts = ramount.split('.');
+                      tr
+                        td
+                          if address.addresses != 'hidden_address' && address.addresses != 'unknown_address'
+                            a.breakWord(href='/address/' + address.addresses)
+                              if address.claim_name == null || address.claim_name == ''
+                                =address.addresses
+                              else
+                                =address.claim_name
+                            include ./includes/rl_labels.pug
+                          else if address.addresses == 'hidden_address'
+                            if settings.address_page.enable_hidden_address_view == true
+                              a.breakWord(href='/address/hidden_address')
+                                =settings.locale.hidden_sender
+                            else
+                              =settings.locale.hidden_sender
+                          else
+                            if settings.address_page.enable_unknown_address_view == true
+                              a.breakWord(href='/address/unknown_address')
+                                =settings.locale.unknown_sender
+                            else
+                              =settings.locale.unknown_sender
+                        td.bg-danger.text-center #{ramountParts[0]}.
+                          span.decimal #{ramountParts[1]}
+                else
+                  tr.table-info.text-center
+                    td #{settings.locale.proof_of_stake}
+        .col-md-6.cardSpacer
+          .card.card-default.border-0
+            .card-header
+              strong #{settings.locale.tx_recipients}
+            table.table.table-bordered.table-striped.summary-table.mobile-border-right
+              thead(class=theadClasses)
+                tr
+                  th #{settings.locale.tx_address}
+                  th.text-center #{settings.locale.mkt_amount}
+                    span.small  (#{settings.coin.symbol})
+              tbody
+                each address in tx.vout
+                  if tx.vout.length > 0
+                    - var ramount = Number(address.amount / 100000000).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+                    - var ramountParts = ramount.split('.');
+                    tr
+                      if address.addresses != 'hidden_address' && address.addresses != 'unknown_address'
+                        td
+                          a.breakWord(href='/address/' + address.addresses)
+                            if address.claim_name == null || address.claim_name == ''
+                              =address.addresses
+                            else
+                              =address.claim_name
+                          include ./includes/rl_labels.pug
+                        td.bg-success.text-center #{ramountParts[0]}.
+                          span.decimal #{ramountParts[1]}
+                      else if address.amount > 0
+                        td
+                          if address.addresses == 'hidden_address'
+                            if settings.address_page.enable_hidden_address_view == true
+                              a.breakWord(href='/address/hidden_address')
+                                =settings.locale.hidden_recipient
+                            else
+                              =settings.locale.hidden_recipient
+                          else
+                            if settings.address_page.enable_unknown_address_view == true
+                              a.breakWord(href='/address/unknown_address')
+                                =settings.locale.unknown_recipient
+                            else
+                              =settings.locale.unknown_recipient
+                        td.bg-success.text-center #{ramountParts[0]}.
+                          span.decimal #{ramountParts[1]}
+                      else
+                        td(colspan='2')
+                          if address.addresses == 'hidden_address'
+                            if settings.address_page.enable_hidden_address_view == true
+                              a.breakWord(href='/address/hidden_address')
+                                =settings.locale.hidden_recipient
+                            else
+                              =settings.locale.hidden_recipient
+                          else
+                            if settings.address_page.enable_unknown_address_view == true
+                              a.breakWord(href='/address/unknown_address')
+                                =settings.locale.unknown_recipient
+                            else
+                              =settings.locale.unknown_recipient
+                  else
+                    - var ramount = Number(address.amount / 100000000).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+                    - var ramountParts = ramount.split('.');
+                    tr
+                      td
+                        a.breakWord(href='/address/' + address.addresses)
+                          if address.claim_name == null || address.claim_name == ''
+                            =address.addresses
+                          else
+                            =address.claim_name
+                        include ./includes/rl_labels.pug
+                      td.bg-success.text-center #{ramountParts[0]}.
+                        span.decimal #{ramountParts[1]}

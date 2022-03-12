@@ -1,0 +1,143 @@
+extends layout
+
+block content
+  script.
+    $(document).ready(function () {
+        function generateAlertHTML(alertClass, allowDismiss, headerText, msgText) {
+          return '<div class="alert alert-' + alertClass + (allowDismiss ? ' alert-dismissable' : '') + '" role="alert">' +
+            (allowDismiss ? '<button type="button" class="close" data-dismiss="alert">×</button>' : '') + 
+            '<div' + (msgText == null || msgText == '' ? '' : ' class="cardSpacer"') + '>' +
+            '<span class="fas ' + (alertClass == 'success' ? 'fa-check-circle' : (alertClass == 'danger' ? 'fa-exclamation-circle' : (alertClass == 'info' ? 'fa-info-circle' : 'fa-exclamation-triangle'))) + '" style="margin-right:5px"></span>' +
+            '<strong>' + headerText + '</strong>' +
+            '</div>' +
+            (msgText == null || msgText == '' ? '' : '<span>' + msgText + '</span>') +
+            '</div>';
+        }
+        function displayAsText(str) {
+          return str.replace(/</g, '&#60;').replace(/>/g, '&#62;');
+        }
+        function showClaimAlert(claimClass, warnMsg, removedClaim) {
+          if ($('#claimAlert').length == 0)
+            $('<div id="claimAlert"></div>').insertBefore('#claimForm');
+          $('#claimAlert').html(generateAlertHTML(claimClass, true, (claimClass == 'success' ? (removedClaim ? 'Address claim removed successfully' : 'Address claimed successfully') : (claimClass == 'danger' ? 'Failed to claim address' : 'Required field missing')), (claimClass == 'success' ? '<strong>' + $('input#address').val() + '</strong> will now be referred to as <strong>' + (removedClaim ? $('input#address').val() : displayAsText($('#message').val())) + '</strong> throughout the website' : warnMsg) + '.'));
+          fixFooterHeightAndPosition();
+        }
+        $('#claimInstructions').on('show.bs.collapse', function () {
+          $('#showClaimInstructions').html('<i class="fas fa-angle-down" style="margin-right:5px;"></i><span>Hide claim instructions</span>');
+        }).on('hide.bs.collapse', function () {
+          $('#showClaimInstructions').html('<i class="fas fa-angle-up" style="margin-right:5px;"></i><span>Show claim instructions</span>');
+        }).on('shown.bs.collapse', function () {
+          fixFooterHeightAndPosition();
+        }).on('hidden.bs.collapse', function () {
+          fixFooterHeightAndPosition();
+        });
+        $('#claimForm').on('submit', function (e) {
+          e.preventDefault();
+          var address = $('input#address').val();
+          var message = $('input#message').val();
+          var signature = $('input#signature').val();
+          var url = '/claim';
+          
+          if (address == null || address.trim().length == 0) {
+            showClaimAlert('warning', 'Please enter the wallet address you wish to claim', false);
+            $('input#address').focus();
+          } else if (signature == null || signature.trim().length == 0) {
+            showClaimAlert('warning', 'Please enter the signature value from your wallet software', false);
+            $('input#signature').focus();
+          } else {
+            $.ajax({
+              type: 'post',
+              url: url,
+              data: {
+                'address': address,
+                'message': message,
+                'signature': signature
+              },
+              success: function (data) {
+                showClaimAlert((data.status == 'success' ? 'success' : 'danger'), data.message, (data.status == 'success' && message == ''));
+              }
+            });
+          }
+        });
+        if ('!{hash}' != 'null' && '!{hash}' != '') {
+          $('<div id="claimAlert"></div>').insertBefore('#claimForm');
+          $('#claimAlert').html(generateAlertHTML('info', true, ('!{claim_name}' == '' ? 'Unc' : 'C') + 'laimed address', '<strong>!{hash}</strong> is currently ' + ('!{claim_name}' == '' ? 'un' : '') + 'claimed' + ('!{claim_name}' == '' ? '' : ' as <strong>' + displayAsText('!{claim_name}') + '.</strong>')));
+        }
+        if (#{settings.shared_pages.page_header.page_title_image.enable_animation} == true && #{settings.claim_address_page.page_header.show_img} == true)
+          startRotateElement('img#header-img');
+      });
+  .col-xs-12.col-md-12
+    if settings.claim_address_page.page_header.show_img == true || settings.claim_address_page.page_header.show_title == true || settings.claim_address_page.page_header.show_description == true
+      #page-header-container(style='align-items:' + (settings.claim_address_page.page_header.show_img == true && settings.claim_address_page.page_header.show_title == true && settings.claim_address_page.page_header.show_description == true ? 'flex-start' : 'center'))
+        if settings.claim_address_page.page_header.show_img == true
+          #header-img-container
+            img#header-img(src=(settings.shared_pages.page_header.page_title_image == null || settings.shared_pages.page_header.page_title_image.image_path == null || settings.shared_pages.page_header.page_title_image.image_path == '' ? '/img/page-title-img.png' : settings.shared_pages.page_header.page_title_image.image_path))
+        #page-title-container
+          if settings.claim_address_page.page_header.show_title == true
+            h3#page-title #{settings.locale.claim_title.replace('{1}', settings.coin.name)}
+          if settings.claim_address_page.page_header.show_description == true
+            if settings.claim_address_page.page_header.show_title != true
+              #page-title-container
+                .sub-page-header.text-muted=settings.locale.claim_description.replace('{1}', settings.coin.name)
+            else
+              .sub-page-header.text-muted=settings.locale.claim_description.replace('{1}', settings.coin.name)
+      .cardSpacer.clearfix
+    .card.card-default.border-0.cardSpacer
+      .card-header
+        strong Claim Wallet Address
+      .card-body
+        a#showClaimInstructions.badge.badge-info(href='#claimInstructions', style='font-size:100%;margin-bottom:15px;', data-toggle='collapse' role='button' aria-expanded='false' aria-controls='claimInstructions')
+          i.fas.fa-angle-up(style='margin-right:5px;')
+          span Show claim instructions
+        div#claimInstructions.alert.alert-primary.collapse
+          div
+            span Use the
+            span.font-weight-bold  Sign Message
+            span  feature from your
+            span.font-weight-bold  #{settings.coin.name}
+            span  wallet to verify ownership of a wallet address that belongs to you.
+          br
+          div Enter the following data into the wallet software:
+          br
+          div
+            span.font-weight-bold Address:
+            if hash == null || hash == ''
+              span=' <wallet address from the form below>'
+            else
+              span  #{hash}
+          div
+            span.font-weight-bold Message:
+            span=' <display name from the form below>'
+          br
+          div
+            span Click the
+            span.font-weight-bold  Sign Message
+            span  button in the wallet, and copy/paste the resulting
+            span.font-weight-bold  Signature
+            span  at the bottom of this form.
+          br
+          div
+            span Finally, click the
+            span.font-weight-bold  Claim
+            span  button below to claim your address, which will display your custom display name instead of the default wallet address on this site.
+          br
+          div
+            span.font-weight-bold NOTE:
+            span  You can update your claimed address at any time, as often as you wish. To remove a previously claimed display name, simply sign a blank message to return the address back to its original value.
+        form#claimForm
+          .form-group
+            fieldset.entryField
+              label(for='address') Wallet Address
+              if hash == null || hash == ''
+                input#address.form-control(type='text', maxlength='70')
+              else
+                input#address.form-control(type='text', value=hash, readonly='readonly', maxlength='70')
+          .form-group
+            fieldset.entryField
+              label(for='message') Display Name
+              input#message.form-control(type='text', placeholder='Display Name', maxlength='50')
+          .form-group
+            fieldset.entryField
+              label(for='signature') Signature
+              input#signature.form-control(type='text', placeholder='Signature', maxlength='100')
+          button.btn.btn-success(type='submit') Claim

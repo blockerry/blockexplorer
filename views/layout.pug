@@ -1,0 +1,541 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    meta(http-equiv='Content-Language', content='en')
+    title=settings.shared_pages.page_title
+    link(rel='stylesheet', href='/css/themes/' + settings.shared_pages.theme + '/bootstrap.min.css')
+    link(rel='stylesheet', href='https://use.fontawesome.com/releases/v5.15.4/css/all.css')
+    if active == 'markets' || active == 'richlist'
+      link(rel='stylesheet', href='https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/jquery.jqplot.min.css')
+    if active == 'network'
+      link(rel='stylesheet', href='https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/4.1.4/css/flag-icons.min.css')
+    link(rel='stylesheet', type='text/css', href='https://cdn.datatables.net/v/bs4/dt-1.11.3/datatables.min.css')
+    link(rel='stylesheet', href='/css/style.min.css')
+    script(type='text/javascript', src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js', integrity='sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==', crossorigin='anonymous', referrerpolicy='no-referrer')
+    script(type='text/javascript', src='https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js', integrity='sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx', crossorigin='anonymous')
+    if active == 'markets' || active == 'richlist'
+      script(type='text/javascript', src='https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/jquery.jqplot.min.js')
+    if active == 'markets'
+      script(type='text/javascript', src='https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/plugins/jqplot.dateAxisRenderer.min.js')
+      script(type='text/javascript', src='https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/plugins/jqplot.ohlcRenderer.min.js')
+      script(type='text/javascript', src='https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/plugins/jqplot.highlighter.min.js')
+    if active == 'richlist'
+      script(type='text/javascript', src='https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/plugins/jqplot.pieRenderer.min.js')
+    script(type='text/javascript', src='https://cdn.datatables.net/v/bs4/dt-1.11.3/datatables.min.js')
+    if active == 'reward'
+      script(type='text/javascript', src='https://cdn.jsdelivr.net/npm/chart.js@3.6.1/dist/chart.min.js')
+    - var showPanels = false
+    case active
+      when 'home'
+        if settings.index_page.show_panels == true
+          -  showPanels = true
+        break
+      when 'block'
+        if settings.block_page.show_panels == true
+          -  showPanels = true
+        break
+      when 'tx'
+        if settings.transaction_page.show_panels == true
+          -  showPanels = true
+        break
+      when 'address'
+        if settings.address_page.show_panels == true
+          -  showPanels = true
+        break
+      when 'masternodes'
+        if settings.masternodes_page.show_panels == true
+          -  showPanels = true
+        break
+      when 'movement'
+        if settings.movement_page.show_panels == true
+          -  showPanels = true
+        break
+      when 'network'
+        if settings.network_page.show_panels == true
+          -  showPanels = true
+        break
+      when 'richlist'
+        if settings.richlist_page.show_panels == true
+          -  showPanels = true
+        break
+      when 'markets'
+        if settings.markets_page.show_panels == true
+          -  showPanels = true
+        break
+      when 'info'
+        if settings.api_page.show_panels == true
+          -  showPanels = true
+        break
+      when 'claim-address'
+        if settings.claim_address_page.show_panels == true
+          -  showPanels = true
+        break
+      when 'reward'
+        if settings.blockchain_specific.heavycoin.reward_page.show_panels == true
+          -  showPanels = true
+        break
+      default
+        if settings.error_page.show_panels == true
+          -  showPanels = true
+    script.
+      /* Special thanks to the stackoverflow community for the getParameterByName function: https://stackoverflow.com/a/901144/3038650 */
+      function getParameterByName(name, url = window.location.href) {
+        name = name.replace(/[\[\]]/g, '\\$&');
+        var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, ' '));
+      }
+      function fixFooterHeightAndPosition() {
+        var screenWidth = $(window).width();
+
+        if (screenWidth <= 575) {
+          // Mobile
+          $('#footer-container').css('height', '!{settings.shared_pages.page_footer.footer_height_mobile}');
+        } else if (screenWidth >= 576 && screenWidth <= 991) {
+          // Tablet
+          $('#footer-container').css('height', '!{settings.shared_pages.page_footer.footer_height_tablet}');
+        } else {
+          // Desktop
+          $('#footer-container').css('height', '!{settings.shared_pages.page_footer.footer_height_desktop}');
+        }
+
+        if (!#{settings.shared_pages.page_footer.sticky_footer}) {
+          // Wait a tick before fixing footer position to give time for elements to be rendered
+          var nonStickyFooterSetIntervalID = setInterval(function() {
+            // Stop setInterval from running again
+            clearInterval(nonStickyFooterSetIntervalID);
+            // Ensure footer is shown at the bottom of the viewport
+            var offset = (window.innerHeight - $('#footer-container').position().top - $('#footer-container').outerHeight());
+            $('#footer-container').css('margin-top', (offset > 0 ? offset : '10') + 'px');
+          }, 1, "tmrFixFooter");
+        } else {
+          // Add spacing to the bottom of the body for the sticky footer
+          $('body').css('margin-bottom', ($('#footer-container').outerHeight() + 10) + 'px');
+        }
+
+        fixSocialLinkFontSize();
+      }
+      function fixSocialLinkFontSize() {
+        var fontSize = $('#footer-container').height() * (getSocialLinkHeight() / 100);
+        $('#footer-container .social-link').css('font-size', fontSize);
+        $('#footer-container .social-link > img').css('width', fontSize + 'px').css('height', fontSize + 'px');
+      }
+      function getSocialLinkHeight() {
+        var retVal = 70;
+        var screenWidth = $(window).width();
+
+        if (screenWidth <= 575) {
+          // Mobile
+          retVal = !{settings.shared_pages.page_footer.social_link_percent_height_mobile};
+        } else if (screenWidth >= 576 && screenWidth <= 991) {
+          // Tablet
+          retVal = !{settings.shared_pages.page_footer.social_link_percent_height_tablet};
+        } else {
+          // Desktop
+          retVal = !{settings.shared_pages.page_footer.social_link_percent_height_desktop};
+        }
+
+        return retVal;
+      }
+      function enableTooltips() {
+        if ($().tooltip) {
+          // Enable tooltips only if browser supports them
+          $('[data-toggle="tooltip"]').tooltip();
+        }
+      }
+      function fixDataTableColumns() {
+        // Wait 2 ticks before adjusting table columns to give time for elements to be rendered (1 tick doesn't seem to be enough for some tables)
+        var ColumnAdjustSetIntervalID = setInterval(function() {
+          // Stop setInterval from running again
+          clearInterval(ColumnAdjustSetIntervalID);
+          // Ensure columns are properly aligned
+          $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
+        }, 2, 'adjustTableColumns');
+      }
+      function rotateElement(elementSelector) {
+        var element = $(elementSelector);
+
+        if (element.length > 0) {
+          $({ deg: 0 }).animate({ deg: 360 }, {
+            duration: 2000,
+            step: function(deg) {
+              element.css({
+                transform: 'rotateY(' + deg + 'deg)'
+              });
+            },
+            done: function() {
+              setTimeout(function() {
+                rotateElement(elementSelector);
+              }, 1500);
+            }
+          });
+        }
+      }
+      function startRotateElement(elementSelector) {
+        setTimeout(function() {
+          rotateElement(elementSelector);
+        }, 100);
+      }
+      $(document).ready(function() {
+        if ('#{active}' != '')
+          $('##{active}').addClass('active');
+        function showTopPanelData(dataElement, loadingElement) {
+          if ($('#' + loadingElement).length) {
+            $('#' + loadingElement).fadeOut('slow', function() {
+              $('#' + loadingElement).remove();
+              $('#' + dataElement).fadeIn();
+            });
+          }
+        }
+        function update_stats() {
+          var summary_headers = {
+            Accept: 'application/json, text/javascript, */*; q=0.01'
+          };
+
+          if (#{showPanels} == false)
+            summary_headers['footer-only'] = 'true';
+
+          $.ajax({url: '/ext/getsummary', headers: summary_headers, success: function(json) {
+            if (#{showPanels} == true) {
+              if (json.masternodeCountOnline == null)
+                json.masternodeCountOnline = '-';
+              if (json.masternodeCountOffline == null)
+                json.masternodeCountOffline = '-';
+
+              var mnOnlineText = json.masternodeCountOnline+" node"+(json.masternodeCountOnline == 1 ? "" : "s")+" online";
+              var mnOfflineText = json.masternodeCountOffline+" unreachable node"+(json.masternodeCountOffline == 1 ? "" : "s");
+
+              $("#masternodeCountOnline").text(json.masternodeCountOnline).prop("alt", mnOnlineText).prop("title", mnOnlineText).attr("data-original-title", mnOnlineText);
+              $("#masternodeCountOffline").text(json.masternodeCountOffline).prop("alt", mnOfflineText).prop("title", mnOfflineText).attr("data-original-title", mnOfflineText);
+              $("#spnMasternodeCountOnline").prop("alt", mnOnlineText).prop("title", mnOnlineText).attr("data-original-title", mnOnlineText);
+              $("#spnMasternodeCountOffline").prop("alt", mnOfflineText).prop("title", mnOfflineText).attr("data-original-title", mnOfflineText);
+              showTopPanelData('masternodepanel', 'masternodePanelLoading');
+
+              var supplyString = json.supply;
+              var diffString = json.difficulty;
+              var hashrateString = json.hashrate;
+              var splitValue, splitParts;
+
+              if (!isNaN(json.difficulty))
+                diffString = Number(json.difficulty).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+              if (!isNaN(json.supply))
+                supplyString = parseInt(parseFloat(json.supply).toFixed(0)).toLocaleString('en');
+              if (!isNaN(json.hashrate))
+                hashrateString = Number(json.hashrate).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+
+              $("#supply").text(supplyString);
+              splitValue = Number(parseFloat(json.lastPrice).toFixed(8) * parseInt(parseFloat(json.supply).toFixed(0))).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+              splitParts = splitValue.split('.');
+              showTopPanelData('supplypanel', 'supplyPanelLoading');
+
+              $("#marketCap").html(splitParts[0] + '.<span class="decimal">' + splitParts[1] + '</span>');
+              showTopPanelData('marketCapPanel', 'marketCapPanelLoading');
+
+              splitParts = diffString.split('.');
+              $("#difficulty").html(splitParts[0] + '.<span class="decimal">' + splitParts[1] + '</span>');
+
+              if (json.difficultyHybrid == null || json.difficultyHybrid == '')
+                $("#difficultyHybrid").html('-');
+              else {
+                splitParts = json.difficultyHybrid.split('.');
+                $("#difficultyHybrid").html(splitParts[0] + '.<span class="decimal">' + splitParts[1] + '</span>');
+              }
+
+              showTopPanelData('difficultypanel', 'difficultyPanelLoading');
+
+              if (hashrateString == null || hashrateString == '' || hashrateString == '-')
+                $("#hashrate").html('-');
+              else {
+                splitParts = hashrateString.split('.');
+                $("#hashrate").html(splitParts[0] + '.<span class="decimal">' + splitParts[1] + '</span>');
+              }
+              showTopPanelData('hashratepanel', 'hashratePanelLoading');
+
+              splitValue = Number(json.lastPrice).toLocaleString('en',{'minimumFractionDigits':2,'maximumFractionDigits':8,'useGrouping':true});
+              splitParts = splitValue.split('.');
+              $("#lastPrice").html(splitParts[0] + '.<span class="decimal">' + splitParts[1] + '</span>');
+              showTopPanelData('pricepanel', 'pricePanelLoading');
+            }
+
+            $("#lblConnections").text(json.connections + ' connections');
+            $("#lblBlockcount").text(json.blockcount + ' blocks');
+          }});
+        }
+        $('.iquidus').css('color',$('.table').css('color'));
+        $(window).resize(function () {
+          fixDataTableColumns();
+          fixFooterHeightAndPosition();
+        });
+        function getNetworkPanel() {
+          var networkSuffix='';
+          switch ('#{settings.shared_pages.page_header.panels.network_panel.nethash_units}') {
+            case "K":
+              networkSuffix='(KH/s)';
+              break;
+            case "M":
+              networkSuffix='(MH/s)';
+              break;
+            case "G":
+              networkSuffix='(GH/s)';
+              break;
+            case "T":
+              networkSuffix='(TH/s)';
+              break;
+            case "P":
+              networkSuffix='(PH/s)';
+              break;
+            case "H":
+              networkSuffix='(H/s)';
+              break;
+          }
+          var hashRateType='<label id="hashrate"></label>';
+          return '<div class="card-header"><strong>#{settings.locale.network} <span class="small">'+networkSuffix+'</span></strong></div><div class="card-body"><div id="hashratePanelLoading" class="header-panel"><i class="fa fa-spinner fa-pulse"></i></div><div id="hashratepanel" class="header-panel" style="display:none;"><span class="fa fa-cogs"></span>'+hashRateType+'</div></div>';
+        }
+        function getDifficultyPanel() {
+          var difficultyType='<label id="difficulty"></label>';
+          if ('#{settings.shared_pages.difficulty}' == 'Hybrid') difficultyType+='<br /><span class="fas fa-sliders-h"></span><label id="difficultyHybrid"></label>';
+          return '<div class="card-header"><strong>#{settings.locale.difficulty}</strong></div><div class="card-body"><div id="difficultyPanelLoading" class="header-panel"><i class="fa fa-spinner fa-pulse"></i></div><div id="difficultypanel" class="header-panel" style="display:none;"><span class="fas fa-sliders-h"></span>'+difficultyType+'</div></div>';
+        }
+        function getMasternodesPanel() {
+          return '<div class="card-header"><strong>#{settings.locale.masternodecount}</strong></div><div class="card-body"><div id="masternodePanelLoading" class="header-panel"><i class="fa fa-spinner fa-pulse"></i></div><div id="masternodepanel" class="header-panel" style="display:none;"><span id="spnMasternodeCountOnline" class="fa fa-check-circle" data-toggle="tooltip" data-placement="top"></span><label id="masternodeCountOnline" data-toggle="tooltip" data-placement="top"></label><label>&nbsp;/&nbsp;</label><label id="masternodeCountOffline" data-toggle="tooltip" data-placement="top"></label><span id="spnMasternodeCountOffline" class="fa fa-exclamation-triangle" data-toggle="tooltip" data-placement="top"></span></div></div>';
+        }
+        function getCoinSupplyPanel() {
+          var supplyType='<label id="supply"></label>';
+          return '<div class="card-header"><strong>#{settings.locale.ex_supply} <span class="small">(#{settings.coin.symbol})</span></strong></div><div class="card-body"><div id="supplyPanelLoading" class="header-panel"><i class="fa fa-spinner fa-pulse"></i></div><div id="supplypanel" class="header-panel" style="display:none;"><span class="fa fa-chart-pie"></span>'+supplyType+'</div></div>';
+        }
+        function getPricePanel() {
+          var priceType='<label id="lastPrice">-</label>';
+          return '<div class="card-header"><strong>Price <span class="small">(#{settings.markets_page.default_exchange.trading_pair.split('/')[1]})</span></strong></div><div class="card-body"><div id="pricePanelLoading" class="header-panel"><i class="fa fa-spinner fa-pulse"></i></div><div id="pricepanel" class="header-panel" style="display:none;"><span class="fa fa-rocket"></span>'+priceType+'</div></div>';
+        }
+        function getMarketCapPanel() {
+          return '<div class="card-header"><strong>Market Cap <span class="small">(#{settings.markets_page.default_exchange.trading_pair.split('/')[1]})</span></strong></div><div class="card-body"><div id="marketCapPanelLoading" class="header-panel"><i class="fa fa-spinner fa-pulse"></i></div><div id="marketCapPanel" class="header-panel" style="display:none;"><span class="fas fa-chart-line"></span><label id="marketCap"></label></div></div>';
+        }
+        function getLogoPanel() {
+          return '<img src="#{settings.shared_pages.logo}" style="margin-top:-15px;height:128px;" alt="#{settings.coin.name} Logo" title="#{settings.coin.name} Logo" />';
+        }
+        function getActivePanel(panelName) {
+          var sReturn='';
+          switch (panelName) {
+            case "network_panel":
+              sReturn=getNetworkPanel();
+              break;
+            case "difficulty_panel":
+              sReturn=getDifficultyPanel();
+              break;
+            case "masternodes_panel":
+              sReturn=getMasternodesPanel();
+              break;
+            case "coin_supply_panel":
+              sReturn=getCoinSupplyPanel();
+              break;
+            case "price_panel":
+              sReturn=getPricePanel();
+              break;
+            case "market_cap_panel":
+              sReturn=getMarketCapPanel();
+              break;
+            case "logo_panel":
+              sReturn=getLogoPanel();
+              break;
+          }
+          return sReturn;
+        }
+        function hideShowPanel(panelID, panelName) {
+          var oPanel = document.getElementById(panelName);
+          if (typeof(oPanel) != 'undefined' && oPanel != null) {
+            document.getElementById(panelName).innerHTML=getActivePanel(panelID);
+
+            if (panelID == 'logo_panel') {
+              // Remove css classes from logo panel
+              $(oPanel).removeClass();
+            }
+          }
+        }
+        $(document).on('click', 'button.close', function (e) {
+          e.preventDefault();
+          fixFooterHeightAndPosition();
+        });
+        if (#{showPanels} == true) {
+          hideShowPanel('#{settings.panel1}', 'pnlOne');
+          hideShowPanel('#{settings.panel2}', 'pnlTwo');
+          hideShowPanel('#{settings.panel3}', 'pnlThree');
+          hideShowPanel('#{settings.panel4}', 'pnlFour');
+          hideShowPanel('#{settings.panel5}', 'pnlFive');
+        }
+        setInterval(function() {
+          update_stats();
+        }, 60000);
+        update_stats();
+        fixFooterHeightAndPosition();
+        enableTooltips();
+      });
+  body
+    - var headerClasses = [];
+    - var footerClasses = ['nav','navbar','navbar-default','d-none','d-md-flex','d-flex','footer'];
+    if settings.shared_pages.page_header.sticky_header == true
+      - headerClasses.push('fixed-top');
+    if settings.shared_pages.page_footer.sticky_footer == true
+      - footerClasses.push('fixed-bottom');
+    if settings.shared_pages.page_header.bgcolor != null && settings.shared_pages.page_header.bgcolor != ''
+      - headerClasses.push('bg-' + settings.shared_pages.page_header.bgcolor);
+      if settings.shared_pages.page_header.bgcolor.toString().toLowerCase() == 'dark' || settings.shared_pages.page_header.bgcolor.toString().toLowerCase() == 'light'
+        - headerClasses.push('navbar-' + settings.shared_pages.page_header.bgcolor);
+    else
+      - headerClasses.push('bg-primary');
+      - headerClasses.push('navbar-dark');
+    if settings.shared_pages.page_footer.bgcolor != null && settings.shared_pages.page_footer.bgcolor != ''
+      - footerClasses.push('bg-' + settings.shared_pages.page_footer.bgcolor);
+      if settings.shared_pages.page_footer.bgcolor.toString().toLowerCase() == 'dark' || settings.shared_pages.page_footer.bgcolor.toString().toLowerCase() == 'light'
+        - footerClasses.push('navbar-' + settings.shared_pages.page_footer.bgcolor);
+    else
+      - footerClasses.push('bg-primary');
+      - footerClasses.push('navbar-dark');
+    div#main-header(class=headerClasses)
+      div.nav.navbar.navbar-expand-lg(role='navigation', style=settings.shared_pages.page_header.home_link == 'logo' ? 'padding-left:0;' : '')
+        .navbar-header
+          button.navbar-toggler(type='button', data-toggle='collapse', data-target='#navbar-collapse')
+            span.navbar-toggler-icon
+        if settings.shared_pages.page_header.home_link == 'title'
+          a.navbar-brand(href='/', style='order:-1;') #{settings.shared_pages.page_title}
+        else if settings.shared_pages.page_header.home_link == 'coin'
+          a.navbar-brand(href='/', style='order:-1;') #{settings.coin.name}
+        else if settings.shared_pages.page_header.home_link == 'logo'
+          a(href='/', alt=settings.coin.name + ' Home', title=settings.coin.name + ' Home', style='order:-1;', data-toggle='tooltip', data-placement='bottom')
+            img.logo-main(src=(settings.shared_pages.page_header.home_link_logo == null || settings.shared_pages.page_header.home_link_logo == '' ? settings.shared_pages.logo : settings.shared_pages.page_header.home_link_logo), style='margin:0;max-height:' + settings.shared_pages.page_header.home_link_logo_height + 'px;')
+        .collapse.navbar-collapse(id='navbar-collapse')
+          ul.navbar-nav.mr-auto(style='width:100%;')
+            li#home
+              a.nav-link(href='/')
+                span.fas.fa-cubes
+                span.margin-left-5 #{settings.locale.menu_explorer}
+            if settings.blockchain_specific.heavycoin.enabled == true && settings.blockchain_specific.heavycoin.reward_page.enabled == true
+              li#reward
+                a.nav-link(href='/reward')
+                  span.fa.fa-star
+                  span.margin-left-5 #{settings.locale.menu_reward}
+            if settings.masternodes_page.enabled == true
+              li#masternodes
+                a.nav-link(href='/masternodes')
+                  span.fa.fa-share-alt
+                  span.margin-left-5 Masternodes
+            if settings.movement_page.enabled == true
+              li#movement
+                a.nav-link(href='/movement')
+                  span.far.fa-money-bill-alt
+                  span.margin-left-5 #{settings.locale.menu_movement}
+            if settings.network_page.enabled == true
+              li#network
+                a.nav-link(href='/network')
+                  span.fas.fa-network-wired
+                  span.margin-left-5 #{settings.locale.menu_network}
+            if settings.richlist_page.enabled == true
+              li#richlist
+                a.nav-link(href='/richlist')
+                  span.fab.fa-btc
+                  span.margin-left-5 #{settings.locale.menu_richlist}
+            if settings.markets_page.enabled == true
+              if settings.markets_page.show_market_dropdown_menu == true && settings.market_count > 1
+                li#markets.dropdown
+                  a.nav-link.dropdown-toggle(data-toggle='dropdown', href='#' role='button' aria-haspopup='true' aria-expanded='false')
+                    span.fas.fa-chart-line
+                    span.margin-left-5 #{settings.locale.menu_markets}
+                  div.dropdown-menu
+                    each mkt in settings.market_data
+                      if mkt != null && mkt.id != null
+                        each pair in mkt.trading_pairs
+                          a.dropdown-item(href='/markets/' + mkt.id + '/' + pair)
+                            if mkt.logo != null && mkt.logo != ''
+                              img.market-logo(src='data:image/png;base64,' + mkt.logo, title=mkt.name + ' (' + pair + ')', alt=mkt.name + ' (' + pair + ')')
+                            else
+                              i.market-logo.fas.fa-question-circle
+                            span #{mkt.name}
+                              span.small  (#{pair})
+              else
+                li#markets
+                  a.nav-link(href='/markets/' + settings.markets_page.default_exchange.exchange_name + '/' + settings.markets_page.default_exchange.trading_pair)
+                    span.fas.fa-chart-line
+                    span.margin-left-5 #{settings.locale.menu_markets}
+            if settings.api_page.enabled == true
+              li#info
+                a.nav-link(href='/info')
+                  span.fa.fa-info-circle
+                  span.margin-left-5 #{settings.locale.menu_api}
+            if settings.claim_address_page.show_header_menu == true && settings.claim_address_page.enabled == true
+              li#claim-address
+                a.nav-link(href='/claim')
+                  span.far.fa-address-card
+                  span.margin-left-5 #{settings.locale.menu_claim_address}
+        if settings.shared_pages.page_header.search.enabled == true && settings.shared_pages.page_header.search.position.toString().toLowerCase() == 'inside-header'
+          button#search-header-button(data-toggle='collapse', data-target='#search-navbar-collapse')
+            span.fas.fa-search
+      if settings.shared_pages.page_header.search.enabled == true && settings.shared_pages.page_header.search.position.toString().toLowerCase() == 'inside-header'
+        div#search-navbar-collapse.collapse
+          div.navbar-nav.align-items-lg-center.ml-auto.search-box-custom(style='width:100%;')
+            form.form-inline.col-12.d-flex.justify-content-center(method='post', action='/search')
+              div.input-group.input-group-md.search-for(style='width:100%;')
+                input.form-control(type='text', name='search', placeholder=settings.locale.ex_search_message)
+                span.input-group-append
+                  button.btn.btn-success.btn-sm(type='submit') #{settings.locale.ex_search_button}
+    div#body-container(style='margin-top:' + (settings.shared_pages.page_header.sticky_header == true ? '80px;' : '20px;'))
+      if showSync != null && showSync == true
+        .col-lg-12
+          .alert.alert-warning
+            .cardSpacer
+              span.fas.fa-exclamation-triangle(style='margin-right:5px;')
+              strong #{settings.locale.ex_warning}
+            div #{settings.locale.initial_index_alert}
+      if showPanels == true || (settings.shared_pages.page_header.search.enabled == true && settings.shared_pages.page_header.search.position.toString().toLowerCase() == 'below-header')
+        .col-lg-12
+          if showPanels == true
+            .row.text-center.d-flex.justify-content-center
+              div(class="col-lg-2 col-lg-offset-" + settings.paneloffset)
+                - if (settings.panel1 != '') {
+                  .card.card-default.border-0.d-none.d-lg-block.d-block.cardSpacer(id='pnlOne')
+                - }
+              - if (settings.panel2 != '') {
+                .col-lg-2
+                  .card.card-default.border-0.d-none.d-lg-block.d-block.cardSpacer(id='pnlTwo')
+              - }
+              - if (settings.panel3 != '') {
+                .col-lg-2
+                  .card.card-default.border-0.d-none.d-lg-block.d-block.cardSpacer(id='pnlThree')
+              - }
+              - if (settings.panel4 != '') {
+                .col-lg-2
+                  .card.card-default.border-0.d-none.d-lg-block.d-block.cardSpacer(id='pnlFour')
+              - }
+              - if (settings.panel5 != '') {
+              .col-lg-2
+                .card.card-default.border-0.d-none.d-lg-block.d-block.cardSpacer(id='pnlFive')
+              - }
+          if settings.shared_pages.page_header.search.enabled == true && settings.shared_pages.page_header.search.position.toString().toLowerCase() == 'below-header'
+            div#search-row.row.text-center
+              form.form-inline.col-12.d-flex.justify-content-center(method='post', action='/search')
+                #index-search.form-group.d-flex.justify-content-center
+                  input.form-control(type='text', name='search', placeholder=settings.locale.ex_search_message, style='min-width:80%;margin-right:5px;')
+                  button.btn.btn-success(type='submit') #{settings.locale.ex_search_button}
+      block content
+    div#footer-container(class=footerClasses, role='navigation')
+      .col-4.navbar-nav
+        ul.nav.justify-content-left
+          each social in settings.shared_pages.page_footer.social_links
+            if social.enabled
+              li.float-left
+                a.nav-link.social-link.border-0(href=social.url, target='_blank', alt=settings.coin.name + ' ' + social.tooltip_text, title=settings.coin.name + ' ' + social.tooltip_text, data-toggle='tooltip', data-placement='top')
+                  if social.fontawesome_class != null && social.fontawesome_class != ''
+                    span(class='vertical-align-middle ' + social.fontawesome_class)
+                  else
+                    img(class='vertical-align-middle', src=social.image_path)
+      .col-4.navbar-nav
+        ul.nav.justify-content-center
+          li.text-center
+            p
+              a.nav-link.poweredby.border-0(href='https://www.blockerry.com/', target='_blank') BlockErry Explorer v#{settings.explorer_version}
+      .col-4.navbar-nav
+        ui.nav.justify-content-end
+          label#lblBlockcount.badge.nav-link.border-0.float-right
+          label#lblConnections.badge.nav-link.border-0.float-right

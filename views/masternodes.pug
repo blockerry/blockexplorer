@@ -1,0 +1,193 @@
+extends layout
+
+block content
+  include ./includes/common.pug
+  script.
+    var setting_txPerPage = parseInt("#{settings.masternodes_page.masternode_table.items_per_page}");
+    var lengthMenuOpts = !{JSON.stringify(settings.masternodes_page.masternode_table.page_length_options)};
+    var addedLength = false;
+    for (i = 0; i < lengthMenuOpts.length; i++) {
+      if (!addedLength) {
+        if (lengthMenuOpts[i] > setting_txPerPage) {
+          lengthMenuOpts.splice(i, 0, setting_txPerPage);
+          addedLength = true;
+        } else if (lengthMenuOpts[i] == setting_txPerPage)
+          addedLength = true;
+      }
+    }
+    if (!addedLength && setting_txPerPage != lengthMenuOpts[lengthMenuOpts.length - 1])
+      lengthMenuOpts.push(setting_txPerPage);
+    function secondsToHms(d) {
+        d = Number(d);
+        var h = Math.floor(d / 3600);
+        var m = Math.floor(d % 3600 / 60);
+        var s = Math.floor(d % 3600 % 60);
+        var dy = Math.floor(h / 24);
+        var h = h % 24;
+        return ('0' + dy).slice(-2) + " day" + (('0' + dy).slice(-2) == 1 ? "" : "s") + " " + ('0' + h).slice(-2) + "h " + ('0' + m).slice(-2) + "m " + ('0' + s).slice(-2) + "s";
+    }
+    $(document).ready(function() {
+      var useNewDashFormat = false;
+      var labels = !{JSON.stringify(settings.labels)};
+      var ctable = $('#masternodes-table').dataTable({
+        autoWidth: true,
+        searching: true,
+        ordering: true,
+        order: [[ 5, 'desc' ]],
+        responsive: true,
+        lengthChange: true,
+        processing: true,
+        iDisplayLength: setting_txPerPage,
+        lengthMenu: lengthMenuOpts,
+        scrollX: true,
+        language: {
+          paginate: {
+            previous: '<',
+            next: '>'
+          }
+        },
+        ajax: {
+          url: '/ext/getmasternodelist',
+          dataSrc: function(json) {
+            for (i = 0; i < json.length; i++) {
+              var addr = json[i]['addr'];
+              json[i]['address'] = "<a href='/address/" + json[i]['address'] + "'>" + json[i]['address'] + "</a>";
+              json[i]['lastseen'] = '<span' + (#{settings.shared_pages.date_time.enable_alt_timezone_tooltips} == true ? ' data-toggle="tooltip" data-placement="auto" title="' + format_unixtime(json[i]['lastseen'], true) + '"' : '') + '>' + format_unixtime(json[i]['lastseen']) + '</span>';
+
+              if (typeof json[i]['lastpaid'] != 'undefined' && json[i]['lastpaid'] != '' && json[i]['lastpaid'] != '0')
+                json[i]['lastpaid'] = '<span' + (#{settings.shared_pages.date_time.enable_alt_timezone_tooltips} == true ? ' data-toggle="tooltip" data-placement="auto" title="' + format_unixtime(json[i]['lastpaid'], true) + '"' : '') + '>' + format_unixtime(json[i]['lastpaid']) + '</span>';
+              else
+                json[i]['lastpaid'] = '<em>N/A</em>';
+              if (json[i]['activetime'])
+                json[i]['activetime'] = secondsToHms(json[i]['activetime']);
+              else
+                json[i]['activetime'] = '<em>N/A</em>';
+              json[i]['addr'] = "<a href='/address/" + json[i]['addr'] + "'>" + json[i]['addr'] + ('#{settings.claim_address_page.enabled}' == 'true' && json[i]['claim_name'] != null && json[i]['claim_name'] != '' ? ' <span class="small">(' + json[i]['claim_name'] + ')</span>' : '') + "</a>";
+
+              if (labels[addr] != null && labels[addr].enabled == true) {
+                if (labels[addr].type)
+                  json[i]['addr'] = '<div><label class="badge badge-' + labels[addr].type + '" style="margin-bottom:10px;">' + labels[addr].label + (labels[addr].url ? '<a href="' + labels[addr].url + '" target="_blank", alt="Visit site", title="Visit site" data-toggle="tooltip" data-placement="top"><span class="fa fa-question-circle" style="margin-left:5px"></span></a>' : '') + '</label></div>' + json[i]['addr'];
+                else
+                  json[i]['addr'] = '<div><label class="badge badge-default" style="margin-bottom:10px;">' + labels[addr].label + (labels[addr].url ? '<a href="' + labels[addr].url + '" target="_blank", alt="Visit site", title="Visit site" data-toggle="tooltip" data-placement="top"><span class="fa fa-question-circle" style="margin-left:5px"></span></a>' : '') + '</label></div>' + json[i]['addr'];
+              }
+            }
+ 
+            useNewDashFormat = json.length > 0 && json[0].ip_address != null && json[0].ip_address != '';
+ 
+            return json;
+          }
+        },
+        columns: [
+          { name: 'rank', data: 'rank', className: "rankCol" },
+          { name: 'network', data: 'network', className: "networkCol" },
+          { name: 'ip_address', data: 'ip_address', className: "ipAddressCol" },
+          { name: 'addr', data: 'addr', className: "addressCol" },
+          { name: 'version', data: 'version', className: "versionCol" },
+          { name: 'lastseen', data: 'lastseen', className: "lastSeenCol" },
+          { name: 'lastpaid', data: 'lastpaid', className: "lastPaidCol" },
+          { name: 'last_paid_block', data: 'last_paid_block', className: "lastPaidBlockCol" },
+          { name: 'activetime', data: 'activetime', className: "activeTimeCol" },
+          { name: 'status', data: 'status', className: "statusCol" }
+        ],
+        rowCallback: function(row, data, index) {
+          $("td.addressCol", row).addClass("breakWord");
+
+          if (useNewDashFormat)
+            $("td.ipAddressCol", row).addClass("breakWord");
+
+          switch (data['status'].toUpperCase()) {
+            case 'ENABLED':
+              $("td.statusCol", row).addClass('bg-success');
+              break;
+            case 'REMOVE':
+              $("td.statusCol", row).addClass('bg-danger');
+              break;
+            case 'EXPIRED':
+              $("td.statusCol", row).addClass('bg-warning');
+              break;
+            default:
+              $("td.statusCol", row).addClass('bg-info');
+              break;
+          }
+        },
+        fnDrawCallback: function(settings) {
+          fixDataTableColumns();
+          fixFooterHeightAndPosition();
+          enableTooltips();
+        },
+        fnInitComplete: function(settings, json) {
+          setTimeout(function () {
+            // Hide/show columns based on which Dash masternode format is used
+            ctable.api().column('rank:name').visible(!useNewDashFormat, false);
+            ctable.api().column('network:name').visible(!useNewDashFormat, false);
+            ctable.api().column('version:name').visible(!useNewDashFormat, false);
+            ctable.api().column('lastseen:name').visible(!useNewDashFormat, false);
+            ctable.api().column('activetime:name').visible(!useNewDashFormat, false);
+            ctable.api().column('ip_address:name').visible(useNewDashFormat, false);
+            ctable.api().column('last_paid_block:name').visible(useNewDashFormat);
+          }, 0);
+        }
+      });
+
+      if ('#{settings.masternodes_page.page_header.show_last_updated}' == 'true') {
+        var lastUpdatedDate = #{(last_updated == null || last_updated == '0' ? 0 : last_updated)};
+
+        if (lastUpdatedDate != 0) {
+          $('span#lastUpdatedDate').html(' ' + format_unixtime(lastUpdatedDate));
+
+          if (#{settings.shared_pages.date_time.enable_alt_timezone_tooltips} == true) {
+            $('span#lastUpdatedDate').attr('data-toggle', 'tooltip').attr('data-placement', 'auto').attr('title', format_unixtime(lastUpdatedDate, true));
+            enableTooltips();
+          }
+        } else
+          $('span#lastUpdatedDate').html(' N/A');
+      }
+      if (#{settings.shared_pages.page_header.page_title_image.enable_animation} == true && #{settings.masternodes_page.page_header.show_img} == true)
+        startRotateElement('img#header-img');
+    });
+  .col-md-12.cardSpacer
+    if settings.masternodes_page.page_header.show_img == true || settings.masternodes_page.page_header.show_title == true || settings.masternodes_page.page_header.show_last_updated == true || settings.masternodes_page.page_header.show_description == true
+      #page-header-container(style='align-items:' + (settings.masternodes_page.page_header.show_img == true && settings.masternodes_page.page_header.show_title == true && settings.masternodes_page.page_header.show_last_updated == true && settings.masternodes_page.page_header.show_description == true ? 'flex-start' : 'center'))
+        if settings.masternodes_page.page_header.show_img == true
+          #header-img-container
+            img#header-img(src=(settings.shared_pages.page_header.page_title_image == null || settings.shared_pages.page_header.page_title_image.image_path == null || settings.shared_pages.page_header.page_title_image.image_path == '' ? '/img/page-title-img.png' : settings.shared_pages.page_header.page_title_image.image_path))
+        #page-title-container
+          if settings.masternodes_page.page_header.show_title == true
+            h3#page-title #{settings.locale.mn_title.replace('{1}', settings.coin.name)}
+          if settings.masternodes_page.page_header.show_last_updated == true
+            if settings.masternodes_page.page_header.show_title != true && settings.masternodes_page.page_header.show_description != true
+              #page-title-container
+                .sub-page-header
+                  span.font-weight-bold=settings.locale.last_updated + ':'
+                  span.text-muted#lastUpdatedDate
+            else
+              .sub-page-header(style='margin-bottom:' + (settings.masternodes_page.page_header.show_description == true ? '5' : '0') + 'px')
+                span.font-weight-bold=settings.locale.last_updated + ':'
+                span.text-muted#lastUpdatedDate
+          if settings.masternodes_page.page_header.show_description == true
+            if settings.masternodes_page.page_header.show_title != true && settings.masternodes_page.page_header.show_last_updated != true
+              #page-title-container
+                .sub-page-header.text-muted=settings.locale.mn_description.replace('{1}', settings.coin.name)
+            else
+              .sub-page-header.text-muted=settings.locale.mn_description.replace('{1}', settings.coin.name)
+      .cardSpacer.clearfix
+    .card.card-default
+      .card-header
+        strong Masternode List
+      table#masternodes-table.table.table-bordered.table-striped.table-hover
+        - var theadClasses = [];
+        if settings.shared_pages.table_header_bgcolor != null && settings.shared_pages.table_header_bgcolor != ''
+          - theadClasses.push('thead-' + settings.shared_pages.table_header_bgcolor);
+        thead(class=theadClasses)
+          tr
+            th.text-center Pay rank
+            th.text-center Protocol
+            th.text-center IP address
+            th.text-center Wallet address
+            th.text-center Protocol
+            th.text-center Last seen
+            th.text-center Last paid
+            th.text-center Last paid block
+            th.text-center Active since
+            th.text-center Status
+        tbody.text-center
