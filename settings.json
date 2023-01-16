@@ -157,7 +157,7 @@
           // display_order: Determine which order this panel is shown from 1-5
           //                1 = far left panel, 5 = far right panel
           //                The panel will be disabled with a value of 0
-          "display_order": 0,
+          "display_order": 1,
           // nethash: Determine how to acquire network hashrate. Valid options:
           //          getnetworkhashps: retrieved from getnetworkhashps rpc cmd
           //          netmhashps: retrieved from getmininginfo rpc cmd
@@ -179,7 +179,7 @@
           // display_order: Determine which order this panel is shown from 1-5
           //                1 = far left panel, 5 = far right panel
           //                The panel will be disabled with a value of 0
-          "display_order": 1
+          "display_order": 2
         },
         // masternodes_panel: a collection of settings that pertain to the masternode panel which displays a count of online and unreachable masternodes (only applicable to masternode coins)
         "masternodes_panel": {
@@ -189,7 +189,7 @@
           // display_order: Determine which order this panel is shown from 1-5
           //                1 = far left panel, 5 = far right panel
           //                The panel will be disabled with a value of 0
-          "display_order": 2
+          "display_order": 0
         },
         // coin_supply_panel: a collection of settings that pertain to the coin supply panel which displays the current circulating coin supply value
         "coin_supply_panel": {
@@ -199,7 +199,7 @@
           // display_order: Determine which order this panel is shown from 1-5
           //                1 = far left panel, 5 = far right panel
           //                The panel will be disabled with a value of 0
-          "display_order": 1
+          "display_order": 3
         },
         // price_panel: a collection of settings that pertain to the price panel which displays the current market price measured against the default market pair
         "price_panel": {
@@ -229,7 +229,7 @@
           // display_order: Determine which order this panel is shown from 1-5
           //                1 = far left panel, 5 = far right panel
           //                The panel will be disabled with a value of 0
-          "display_order": 3
+          "display_order": 0
         }
       },
       // search: A collection of settings that pertain to the search feature
@@ -1075,7 +1075,7 @@
     //         HEAVY: retrieved from getsupply rpc cmd (The "blockchain_specific.heavycoin.enabled" setting must be set to true and the "blockchain_specific.heavycoin.api_cmds.getsupply" setting must be set up correctly for this option to work properly)
     //         BALANCES : get the supply by running a query on the addresses collection and summing up all positive balances (potentially a long running query for blockchains with tons of addresses)
     //         TXOUTSET : retrieved from gettxoutsetinfo rpc cmd
-    "supply": "GETINFO"
+    "supply": "BALANCES"
   },
 
   // labels: a collection of settings that pertain to the list of customized wallet address labels
